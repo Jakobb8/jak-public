@@ -29,11 +29,13 @@ local crops = {"Any"}
 for i,_ in seedData do
     table.insert(crops,i)
 end
+table.sort(crops)
 local cropVariants = {"Normal","Gold","Rainbow"}
 local cropMutations = {}
 for i,_ in MutationHandler:GetMutations() do
     table.insert(cropMutations,i)
 end
+table.sort(cropMutations)
 
 local Window = Library:CreateWindow{
     Title = "Jak's Grow a Garden Script",
@@ -384,9 +386,11 @@ autoCollectToggle = Tabs.Garden:AddToggle("act",{
         if not state then return end
         task.spawn(function()
             while task.wait() and __runscript and autoCollectToggle.Value do
+                local orgPos = plr.Character.PrimaryPart.CFrame
                 local farm = getPlayerFarm()
                 for _,plant in farm.Important.Plants_Physical:GetChildren() do
                     if not plant:FindFirstChild("Variant") then continue end
+                    if plant.Grow.Age.Value < plant:GetAttribute("MaxAge") then continue end
                     local Variant = plant.Variant.Value
                     local isVar = false
                     for var,val in autoCollectVSel.Value do
@@ -407,6 +411,7 @@ autoCollectToggle = Tabs.Garden:AddToggle("act",{
                     local hasMut = mode == "AND" or mode == "OFF"
                     for mut,val in autoCollectMSel.Value do
                         if not val then continue end
+                        if mode == "OFF" then continue end
                         if mode == "OR" then
                             if plant:GetAttribute(mut)==true then
                                 hasMut = true
@@ -420,11 +425,14 @@ autoCollectToggle = Tabs.Garden:AddToggle("act",{
                     if not hasMut then continue end
                     for _,v in plant:GetDescendants() do
                         if v:IsA("ProximityPrompt") then
+                            plr.Character:SetPrimaryPartCFrame(plant.PrimaryPart.CFrame)
+                            task.wait(.1)
                             fireproximityprompt(v)
+                            break
                         end
                     end
-                    task.wait(.1)
                 end
+                plr.Character:SetPrimaryPartCFrame(orgPos)
             end
         end)
     end
