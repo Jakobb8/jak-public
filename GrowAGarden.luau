@@ -3,6 +3,8 @@ local SaveManager = loadstring(game:HttpGetAsync("https://raw.githubusercontent.
 local InterfaceManager = loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/ActualMasterOogway/Fluent-Renewed/master/Addons/InterfaceManager.luau"))()
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 local VirtualUser = game:GetService("VirtualUser")
 local plr = game:GetService("Players").LocalPlayer
 
@@ -53,6 +55,86 @@ root.AncestryChanged:Connect(function(child, parent)
     end
 end)
 Window.Root.Active = true
+
+local function toggleWindow()
+    if Window.Root then
+        Window:Minimize()
+    end
+end
+
+local dragIcon = Instance.new("TextButton",Window.Root.Parent)
+dragIcon.Font = Enum.Font.GothamBold
+dragIcon.Text = "Toggle UI"
+dragIcon.Size = UDim2.fromOffset(80, 80)
+dragIcon.Position = UDim2.new(0.75, 0, 0.5, 0)
+dragIcon.AnchorPoint = Vector2.new(.5,0.5)
+dragIcon.Active = true
+dragIcon.TextSize = 12
+Instance.new("UICorner",dragIcon).CornerRadius = UDim.new(1,0)
+local st = Instance.new("UIStroke",dragIcon)
+st.Thickness = 3
+st.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+local dragging
+local dragStart
+local startPosition
+local debounce
+local dragInput
+local isDraggingSomething
+
+dragIcon.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPosition = dragIcon.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+
+                task.delay(0, function()
+                    if debounce == true then return end
+                    debounce = true
+                    task.wait(0.1)
+                    debounce = false
+                end)
+            end
+        end)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+		if input == dragInput and dragging then
+			local delta = input.Position - dragStart
+
+			if not isDraggingSomething then
+				isDraggingSomething = true -- Prevent clicking while dragging
+				TweenService:Create(dragIcon, TweenInfo.new(0.35, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+					Position = UDim2.new(
+						startPosition.X.Scale,
+						startPosition.X.Offset + delta.X,
+						startPosition.Y.Scale,
+						startPosition.Y.Offset + delta.Y
+					)
+				}):Play()
+			end
+
+			isDraggingSomething = false -- Allow clicking after dragging
+		end
+	end)
+
+dragIcon.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+dragIcon.MouseButton1Click:Connect(function()
+	if not dragging and debounce == false then
+		toggleWindow()
+	end
+end)
+
 
 local function getPlayerFarm()
     for _,farm in workspace.Farm:GetChildren() do
