@@ -744,7 +744,7 @@ autoPlaceEggs = Tabs.Pets:AddToggle("ape",{
                     local left = math.random(1,2)==2
                     local exp = farm.CurrentExpansion
                     local part
-                    for _,p in exp[left and "left" or "right"]:GetChildren() do
+                    for _,p in exp[left and "Left" or "Right"]:GetChildren() do
                         if not p:IsA("BasePart") then continue end
                         if not part then
                             part = p
