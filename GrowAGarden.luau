@@ -743,22 +743,20 @@ autoPlaceEggs = Tabs.Pets:AddToggle("ape",{
                     local farm = getPlayerFarm()
                     local left = math.random(1,2)==2
                     local exp = farm.CurrentExpansion
-                    if left then
-                        local part
-                        for _,p in exp:GetChildren() do
-                            if not p:IsA("BasePart") then continue end
-                            if not part then
-                                part = p
-                                continue
-                            end
-                            if part.Mass < p.Mass then
-                                part = p
-                            end
+                    local part
+                    for _,p in exp[left and "left" or "right"]:GetChildren() do
+                        if not p:IsA("BasePart") then continue end
+                        if not part then
+                            part = p
+                            continue
                         end
-                        local pos = getRandomPositionFromPart(part)
-                        if not pos then continue end
-                        event:FireServer("CreateEgg",pos)
+                        if part.Mass < p.Mass then
+                            part = p
+                        end
                     end
+                    local pos = getRandomPositionFromPart(part)
+                    if not pos then continue end
+                    event:FireServer("CreateEgg",pos)
                 end
             end
         end
