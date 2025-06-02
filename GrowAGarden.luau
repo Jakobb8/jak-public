@@ -25,6 +25,7 @@ local gearData = require(ReplicatedStorage.Data.GearData)
 local honeyShopData = require(ReplicatedStorage.Data.HoneyEventShopData)
 local petEggsModule = require(ReplicatedStorage.Data.PetRegistry.PetEggs)
 local petEggData = require(ReplicatedStorage.Data.PetEggData)
+local crateData = require(ReplicatedStorage.Data.CosmeticCrateRegistry.CosmeticCrates)
 local events = ReplicatedStorage.GameEvents
 local MutationHandler = require(ReplicatedStorage.Modules.MutationHandler)
 
@@ -44,6 +45,11 @@ for i,_ in petEggsModule do
     table.insert(petEggs,i)
 end
 table.sort(petEggs)
+local cosmeticCrates = {}
+for i,_ in crateData do
+    table.insert(cosmeticCrates,i)
+end
+table.sort(cosmeticCrates)
 
 local Window = Library:CreateWindow{
     Title = "Jak's Grow a Garden Script",
@@ -260,6 +266,7 @@ local Tabs = {
     Shop = Window:AddTab{Title = "Shop", Icon = "phosphor-storefront"},
     Event = Window:AddTab{Title = "Event", Icon = "phosphor-calendar-star"},
     Pets = Window:AddTab{Title = "Pets", Icon = "phosphor-dog"},
+    Cosmetics = Window:AddTab{Title = "Cosmetics", Icon = "phosphor-package"},
     Items = Window:AddTab{Title = "Items", Icon = "phosphor-backpack"},
     ui = Window:AddTab{Title = "GUIs", Icon = "phosphor-layout"},
     Performance = Window:AddTab{Title = "Performance", Icon = "phosphor-gauge"},
@@ -775,6 +782,94 @@ autoHatchEgg = Tabs.Pets:AddToggle("ahe",{
                 if egg:GetAttribute("OBJECT_TYPE")~="PetEgg" then continue end
                 if egg:GetAttribute("TimeToHatch")>0 then continue end
                 event:FireServer("HatchPet",egg)
+            end
+        end
+    end
+})
+
+-- Cosmetics
+Tabs.Cosmetics:AddSection"Crates"
+local slCrates = Tabs.Cosmetics:AddDropdown("apcs",{
+    Title = "Crates",
+    Default = {},
+    Multi = true,
+    Values = cosmeticCrates
+})
+local autoPlaceCrates
+autoPlaceCrates = Tabs.Cosmetics:AddToggle("apc",{
+    Title = "Auto Place Crates",
+    Callback = function(state)
+        if not state then return end
+        while __runscript and task.wait(1) and autoPlaceCrates.Value do
+            if isMaxEgg() then continue end
+            local char = getCharacter()
+            if char:FindFirstChildOfClass("Tool") and char:FindFirstChildOfClass("Tool"):GetAttribute("ItemType")~="CosmeticCrate" then continue end
+            unequipAllTools()
+            for eggName,statee in slCrates.Value do
+                if not statee then continue end
+                local egg
+                for _,v in plr.Backpack:GetChildren() do
+                    if string.find(v.Name,eggName) and v:GetAttribute("ItemType")=="CosmeticCrate" then
+                        egg = v
+                        break
+                    end
+                end
+                if not egg then continue end
+                egg.Parent = char
+                local mode = placeEggsMode.Value
+                local event = events.CosmeticCrateService
+                if mode=="Radius" then
+                    local radius = placeEggsRadius.Value or 0
+                    local raycastRes = getGround()
+                    local ground = raycastRes.Instance
+                    local pos = raycastRes.Position
+                    if not ground:IsDescendantOf(getPlayerFarm()) then break end
+                    event:FireServer("CrateCrate",pos+Vector3.new(math.random(-radius,radius),0,math.random(-radius,radius)))
+                elseif mode == "Below Feet" then
+                    local raycastRes = getGround()
+                    local ground = raycastRes.Instance
+                    local pos = raycastRes.Position
+                    if not ground:IsDescendantOf(getPlayerFarm()) then break end
+                    event:FireServer("CrateCrate",pos)
+                elseif mode == "Random Position" then
+                    local farm = getPlayerFarm()
+                    local left = math.random(1,2)==2
+                    local exp = farm.CurrentExpansion
+                    local part
+                    for _,p in exp[left and "Left" or "Right"]:GetChildren() do
+                        if not p:IsA("BasePart") then continue end
+                        if not part then
+                            part = p
+                            continue
+                        end
+                        if part.Mass < p.Mass then
+                            part = p
+                        end
+                    end
+                    local pos = getRandomPositionFromPart(part)
+                    if not pos then continue end
+                    event:FireServer("CrateCrate",pos)
+                end
+            end
+        end
+    end
+})
+local autoOpenCrates
+autoOpenCrates = Tabs.Cosmetics:AddToggle("aoc",{
+    Title = "Auto Open Crates",
+    Callback = function(state)
+        if not state then return end
+        while __runscript and task.wait(10) and autoOpenCrates.Value do
+            local data = DataService:GetData()
+            local cosms = 0
+            for _,_ in data.CosmeticData.Inventory do
+                cosms+=1
+            end
+            if cosms+1>275 then continue end
+            for _,crate in getPlayerFarm().Important.Objects_Physical:GetChildren() do
+                if crate:GetAttribute("OBJECT_TYPE")~="CosmeticCrate" then continue end
+                if crate:GetAttribute("TimeToOpen") > 0 then continue end
+                events.CosmeticCrateService:FireServer("OpenCrate",crate)
             end
         end
     end
