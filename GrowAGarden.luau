@@ -16,7 +16,6 @@ local GUIs = {
     seedShop = plr.PlayerGui.Seed_Shop,
     gearShop = plr.PlayerGui.Gear_Shop,
     eventShop = plr.PlayerGui.EventShop_UI,
-    twilightShop = plr.PlayerGui.NightEventShop_UI,
     honeyShop = plr.PlayerGui.HoneyEventShop_UI
 }
 
@@ -297,10 +296,10 @@ Tabs.ui:AddButton{
     end
 }
 Tabs.ui:AddButton{
-    Title = "Open Twilight Shop",
+    Title = "Open Event Shop",
     Description = "",
     Callback = function()
-        GuiController:Toggle(GUIs.twilightShop)
+        GuiController:Toggle(GUIs.eventShop)
     end
 }
 
@@ -532,7 +531,7 @@ local autoCollectMode = Tabs.Garden:AddDropdown("acm",{
     Title = "Filter Mode",
     Default = 1,
     Multi = false,
-    Values = {"OFF","AND","OR"},
+    Values = {"OFF","AND","OR","ONLY"},
     Description = "OR Example: Collect all plants with Moonlit or Bloodlit\nAND Example: Collect all plants with Moonlit and Bloodlit"
 })
 local autoCollectToggle 
@@ -561,17 +560,27 @@ autoCollectToggle = Tabs.Garden:AddToggle("act",{
                 end
                 if not table.find(targets,plant.Name) and not table.find(targets,"Any") then return end
                 local mode = autoCollectMode.Value
-                local hasMut = mode == "AND" or mode == "OFF"
+                local hasMut = mode ~= "OR"
                 for mut,val in autoCollectMSel.Value do
                     if not val then continue end
                     if mode == "OFF" then continue end
                     if mode == "OR" then
                         if plant:GetAttribute(mut)==true then
                             hasMut = true
+                            break
                         end
                     elseif mode == "AND" then
                         if not plant:GetAttribute(mut) then
                             hasMut = false
+                            break
+                        end
+                    elseif mode == "ONLY" then
+                        for _,m in cropMutations do
+                            if mut == m then continue end
+                            if plant:GetAttribute(m) then
+                                hasMut=false
+                                break
+                            end
                         end
                     end
                 end
@@ -869,7 +878,7 @@ autoOpenCrates = Tabs.Cosmetics:AddToggle("aoc",{
             for _,crate in getPlayerFarm().Important.Objects_Physical:GetChildren() do
                 if crate:GetAttribute("OBJECT_TYPE")~="CosmeticCrate" then continue end
                 if crate:GetAttribute("TimeToOpen") > 0 then continue end
-                events.CosmeticCrateService:FireServer("OpenCrate",crate)
+                events.CosmeticCrateService:FireServ    er("OpenCrate",crate)
             end
         end
     end
