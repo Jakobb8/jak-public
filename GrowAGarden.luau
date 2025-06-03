@@ -64,7 +64,7 @@ local Window = Library:CreateWindow{
 
 local root = Window.Root
 local __runscript = true
-root.AncestryChanged:Connect(function(child, parent)
+root.AncestryChanged:Connect(function(_, parent)
     if not parent then
         __runscript = false
     end
@@ -77,18 +77,20 @@ local function toggleWindow()
     end
 end
 
-local dragIcon = Instance.new("TextButton",Window.Root.Parent)
+local dragIcon = Instance.new("TextButton")
 dragIcon.Font = Enum.Font.GothamBold
 dragIcon.Text = "Toggle UI"
 dragIcon.Size = UDim2.fromOffset(80, 80)
 dragIcon.Position = UDim2.new(0.75, 0, 0.5, 0)
 dragIcon.AnchorPoint = Vector2.new(.5,0.5)
 dragIcon.Active = true
+dragIcon.Parent = Window.Root.Parent
 dragIcon.TextSize = 12
 Instance.new("UICorner",dragIcon).CornerRadius = UDim.new(1,0)
-local st = Instance.new("UIStroke",dragIcon)
+local st = Instance.new("UIStroke")
 st.Thickness = 3
 st.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+st.Parent = dragIcon
 
 local dragging
 local dragStart
@@ -339,7 +341,7 @@ autoBuySeed = Tabs.Shop:AddToggle("abs",{
                     if not seedStock[item] then continue end
                     if seedStock[item].Stock < 1 then continue end
                     if DataService:GetData().Sheckles<seedData[item].Price then continue end
-                    for i=0,seedStock[item].Stock do
+                    for _=0,seedStock[item].Stock do
                         event:FireServer(item)
                         task.wait(.1)
                     end
@@ -374,7 +376,7 @@ autoBuyGear = Tabs.Shop:AddToggle("abg",{
                     if not gearStock[item] then continue end
                     if gearStock[item].Stock < 1 then continue end
                     if DataService:GetData().Sheckles<gearData[item].Price then continue end
-                    for i=0,gearStock[item].Stock do
+                    for _=0,gearStock[item].Stock do
                         event:FireServer(item)
                         task.wait(.1)
                     end
@@ -456,7 +458,7 @@ autoBuyHoneyShop = Tabs.Event:AddToggle("abhs",{
                     local price = itemData.Price
                     local currentCur = data.SpecialCurrency[cur]
                     if currentCur<price then continue end
-                    for i=0,honeyStock[item].Stock do
+                    for _=0,honeyStock[item].Stock do
                         event:FireServer(item)
                         print("Bought",item," once")
                         task.wait(.1)
