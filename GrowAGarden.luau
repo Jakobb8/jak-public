@@ -878,13 +878,12 @@ autoOpenCrates = Tabs.Cosmetics:AddToggle("aoc",{
             for _,crate in getPlayerFarm().Important.Objects_Physical:GetChildren() do
                 if crate:GetAttribute("OBJECT_TYPE")~="CosmeticCrate" then continue end
                 if crate:GetAttribute("TimeToOpen") > 0 then continue end
-                events.CosmeticCrateService:FireServ    er("OpenCrate",crate)
+                events.CosmeticCrateService:FireServer("OpenCrate",crate)
             end
         end
     end
 })
 
-SaveManager:SetLibrary(Library)
 InterfaceManager:SetLibrary(Library)
 
 SaveManager:IgnoreThemeSettings()
