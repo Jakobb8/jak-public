@@ -298,13 +298,6 @@ Tabs.ui:AddButton{
         GuiController:Toggle(GUIs.honeyShop)
     end
 }
-Tabs.ui:AddButton{
-    Title = "Open Twilight Shop",
-    Description = "",
-    Callback = function()
-        GuiController:Toggle(GUIs.twilightShop)
-    end
-}
 
 local function filterShopList(list)
     local result = {}
@@ -605,6 +598,18 @@ autoCollectToggle = Tabs.Garden:AddToggle("act",{
                 end
             end
         end)
+    end
+})
+
+local trowelSelP = Tabs.Garden:AddDropdown("tsP",{
+    Title = "Plant(s)",
+    Values = {}
+})
+Tabs.Garden:AddButton({
+    Title = "Refresh Plants List",
+    Callback = function()
+        local plants = {}
+
     end
 })
 
