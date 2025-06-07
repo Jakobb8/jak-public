@@ -16,7 +16,6 @@ local GUIs = {
     seedShop = plr.PlayerGui.Seed_Shop,
     gearShop = plr.PlayerGui.Gear_Shop,
     eventShop = plr.PlayerGui.EventShop_UI,
-    twilightShop = plr.PlayerGui.NightEventShop_UI,
     honeyShop = plr.PlayerGui.HoneyEventShop_UI
 }
 
@@ -82,6 +81,8 @@ local dragIcon = Instance.new("TextButton",Window.Root.Parent)
 dragIcon.Font = Enum.Font.GothamBold
 dragIcon.Text = "Toggle UI"
 dragIcon.Size = UDim2.fromOffset(80, 80)
+dragIcon.BackgroundColor3 = Color3.new(0,0,0)
+dragIcon.TextColor3 = Color3.new(1,1,1)
 dragIcon.Position = UDim2.new(0.75, 0, 0.5, 0)
 dragIcon.AnchorPoint = Vector2.new(.5,0.5)
 dragIcon.Active = true
@@ -89,6 +90,7 @@ dragIcon.TextSize = 12
 Instance.new("UICorner",dragIcon).CornerRadius = UDim.new(1,0)
 local st = Instance.new("UIStroke",dragIcon)
 st.Thickness = 3
+st.Color = Color3.new(1,1,1)
 st.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
 local dragging
