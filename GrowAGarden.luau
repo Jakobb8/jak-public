@@ -6,7 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local VirtualUser = game:GetService("VirtualUser")
-local plr = game:GetService("Players").LocalPlayer
+local plr:Player = game:GetService("Players").LocalPlayer
 
 local GuiController = require(ReplicatedStorage.Modules.GuiController)
 local DataService = require(ReplicatedStorage.Modules.DataService)
@@ -212,8 +212,28 @@ local function isMaxEgg() : boolean
         if egg:GetAttribute("OBJECT_TYPE") ~= "PetEgg" then continue end
         eggs += 1
     end
-    if eggs+1>eggSlots then return true end
-    return false
+    return eggs+1>eggSlots
+end
+
+local function getTool(toolName:string) : Tool?
+    if not toolName then return end
+    for _,tool in plr.Backpack:GetChildren() do
+        if string.find(tool.Name,toolName) then
+            return tool
+        end
+    end
+    for _,tool in getCharacter():GetChildren() do
+        if string.find(tool.Name,toolName) then
+            return tool
+        end
+    end
+    return nil
+end
+
+local function equipTool(toolName:string)
+    local tool = getTool(toolName)
+    if not tool then return end
+    tool.Parent = getCharacter()
 end
 
 local function givePlantToCombpressor(type)
@@ -335,7 +355,7 @@ autoBuySeed = Tabs.Shop:AddToggle("abs",{
                     if not seedStock[item] then continue end
                     if seedStock[item].Stock < 1 then continue end
                     if DataService:GetData().Sheckles<seedData[item].Price then continue end
-                    for i=0,seedStock[item].Stock do
+                    for _=0,seedStock[item].Stock do
                         event:FireServer(item)
                         task.wait(.1)
                     end
@@ -452,7 +472,7 @@ autoBuyHoneyShop = Tabs.Event:AddToggle("abhs",{
                     local price = itemData.Price
                     local currentCur = data.SpecialCurrency[cur]
                     if currentCur<price then continue end
-                    for i=0,honeyStock[item].Stock do
+                    for _=0,honeyStock[item].Stock do
                         event:FireServer(item)
                         print("Bought",item," once")
                         task.wait(.1)
@@ -528,7 +548,9 @@ local autoCollectMode = Tabs.Garden:AddDropdown("acm",{
     Default = 1,
     Multi = false,
     Values = {"OFF","AND","OR","ONLY"},
-    Description = "OR Example: Collect all plants with Moonlit or Bloodlit\nAND Example: Collect all plants with Moonlit and Bloodlit"
+    Description = [[OR Example: Collect all plants with Moonlit OR Bloodlit
+    AND Example: Collect all plants with Moonlit AND Bloodlit
+    ONLY Example: Collect all plants with Moonlit ONLY]]
 })
 local autoCollectToggle 
 autoCollectToggle = Tabs.Garden:AddToggle("act",{
@@ -537,8 +559,8 @@ autoCollectToggle = Tabs.Garden:AddToggle("act",{
     Callback = function(state)
         if not state then return end
         task.spawn(function()
-            local function d(plant)
-                if plant.Grow.Age.Value < plant:GetAttribute("MaxAge") then return end
+            local function cPlant(plant)
+                if plant:FindFirstChild("Grow") and plant.Grow.Age.Value < plant:GetAttribute("MaxAge") then return end
                 local Variant = plant.Variant.Value
                 local isVar = false
                 for var,val in autoCollectVSel.Value do
@@ -590,16 +612,18 @@ autoCollectToggle = Tabs.Garden:AddToggle("act",{
                 for _,plant in farm.Important.Plants_Physical:GetChildren() do
                     if plant:FindFirstChild("Fruits") then 
                         for _,fruit in plant.Fruits:GetChildren() do
-                            d(fruit)
+                            cPlant(fruit)
                         end
                     else
-                        d(plant)
+                        cPlant(plant)
                     end
                 end
             end
         end)
     end
 })
+
+Tabs.Garden:AddSection("Trowel")
 
 local trowelSelP = Tabs.Garden:AddDropdown("tsP",{
     Title = "Plant(s)",
@@ -609,7 +633,39 @@ Tabs.Garden:AddButton({
     Title = "Refresh Plants List",
     Callback = function()
         local plants = {}
-
+        local farm = getPlayerFarm()
+        for _,plant in farm.Important.Plants_Physical:GetChildren() do
+            if plants[plant.Name] then
+                plants[plant.Name] += 1
+            else
+                plants[plant.Name] = 1
+            end
+        end
+        local plantsN = {}
+        for n,v in plants do
+            table.insert(plantsN,n.." x"..v)
+        end
+        trowelSelP:SetValues(plantsN)
+    end
+})
+Tabs.Garden:AddButton({
+    Title = "Trowel Plants",
+    Callback = function()
+        if not getTool("Trowel") then return end
+        local plantN = trowelSelP.Value
+        if not plantN then return end
+        plantN = plantN:match("^(.-) x") or nil
+        if not plantN then return end
+        local farm = getPlayerFarm()
+        local rem:RemoteFunction = events.TrowelRemote
+        local pos = getCharacter().PrimaryPart.CFrame
+        equipTool("Trowel")
+        for _,plant:Model in farm.Important.Plants_Physical:GetChildren() do
+            if plant.Name ~= plantN then continue end
+            rem:InvokeServer("Pickup",getTool("Trowel"),plant)
+            task.wait()
+            rem:InvokeServer("Place",getTool("Trowel"),plant,pos)
+        end
     end
 })
 
