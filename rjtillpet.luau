@@ -11,7 +11,7 @@ local got
 
 for i,v in data["SavedObjects"] do
     print(v.Data.EggName,v.Data.Type)
-    if v.Data.Type ~= "Dragonfly" or v.Data.Type ~= "Raccoonn" then continue end
+    if v.Data.Type ~= "Dragonfly" or v.Data.Type ~= "Raccoon" then continue end
     got = true
     for _,vv in f.Important.Objects_Physical:GetChildren() do
       if vv:GetAttribute("OBJECT_UUID") == i then
