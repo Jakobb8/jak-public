@@ -5,7 +5,9 @@ local target = {
    "Dragonfly",
    "Raccoon",
    "Disco Bee",
-   "Butterfly"
+   "Butterfly",
+   "Queen Bee",
+   "Bear Bee"
 }
 
 local f
