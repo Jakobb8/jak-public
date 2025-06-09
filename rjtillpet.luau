@@ -2,10 +2,10 @@ local ds = require(game.ReplicatedStorage.Modules.DataService)
 local data = ds:GetData()
 
 local target = {
-   "dragonfly",
-   "raccoon",
-   "discobee",
-   "butterfly"
+   "Dragonfly",
+   "Raccoon",
+   "Disco Bee",
+   "Butterfly"
 }
 
 local f
@@ -19,9 +19,7 @@ local got
 
 for i,v in data["SavedObjects"] do
     print(v.Data.EggName,v.Data.Type)
-    if not v.Data.Type then continue end
-    local lwr = string.lower(v.Data.Type):gsub("%s+", "")
-    if not table.find(target,lwr) then continue end
+    if not table.find(target,v.Data.Type) then continue end
     got = true
     for _,vv in f.Important.Objects_Physical:GetChildren() do
       if vv:GetAttribute("OBJECT_UUID") == i then
