@@ -56,7 +56,7 @@ table.sort(cosmeticCrates)
 
 local Window = Library:CreateWindow{
     Title = "Jak's Grow a Garden Script",
-    SubTitle = "by Jakobbb v1.1",
+    SubTitle = "by Jakobbb v1.2",
     TabWidth = 160,
     Size = UDim2.fromOffset(830, 525),
     Resize = true,
