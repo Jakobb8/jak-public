@@ -56,7 +56,7 @@ table.sort(cosmeticCrates)
 
 local Window = Library:CreateWindow{
     Title = "Jak's Grow a Garden Script",
-    SubTitle = "by Jakobbb v1.2",
+    SubTitle = "by Jakobbb v1.3",
     TabWidth = 160,
     Size = UDim2.fromOffset(830, 525),
     Resize = true,
@@ -1589,6 +1589,9 @@ autoCraftGear = Tabs.Crafting:AddToggle("acg", {
             local machineType = machine:GetAttribute("CraftingObjectType")
             local machineData = CraftingService:GetIndividualCraftingMachineData(machine, machineType)
 
+            CraftingService:Craft(machine, machineType)
+            task.wait(0.25)
+
             if machineData and machineData.CraftingItems and machineData.CraftingItems[1] and machineData.CraftingItems[1].IsDone then
                 CraftingService:Claim(machine, machineType, 1)
                 task.wait(0.25)
@@ -1644,8 +1647,6 @@ autoCraftGear = Tabs.Crafting:AddToggle("acg", {
             if equipped then
                 inputItemToMachine(machine)
                 task.wait(0.25)
-                CraftingService:Craft(machine, machineType)
-                task.wait(0.25)
             end
         end
     end
@@ -1685,6 +1686,9 @@ autoCraftSeed = Tabs.Crafting:AddToggle("acs", {
             local machineType = machine:GetAttribute("CraftingObjectType")
             local machineData = CraftingService:GetIndividualCraftingMachineData(machine, machineType)
 
+            CraftingService:Craft(machine, machineType)
+            task.wait(0.25)
+            
             if machineData and machineData.CraftingItems and machineData.CraftingItems[1] and machineData.CraftingItems[1].IsDone then
                 CraftingService:Claim(machine, machineType, 1)
                 task.wait(0.25)
@@ -1739,8 +1743,6 @@ autoCraftSeed = Tabs.Crafting:AddToggle("acs", {
 
             if equipped then
                 inputItemToMachine(machine)
-                task.wait(0.25)
-                CraftingService:Craft(machine, machineType)
                 task.wait(0.25)
             end
         end
