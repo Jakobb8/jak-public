@@ -1582,12 +1582,18 @@ autoCraftGear = Tabs.Crafting:AddToggle("acg", {
     Title = "Auto Craft Gear",
     Callback = function(state)
         if not state then return end
-        while autoCraftGear.Value and __runscript and task.wait(10) do
+        while autoCraftGear.Value and __runscript and task.wait(1) do
             if not GearRecipes.Value then continue end
             local machine = workspace.CraftingTables.EventCraftingWorkBench
             local selectedRecipe = GearRecipes.Value
             local machineType = machine:GetAttribute("CraftingObjectType")
             local machineData = CraftingService:GetIndividualCraftingMachineData(machine, machineType)
+
+            if machineData and machineData.CraftingItems and machineData.CraftingItems[1] and machineData.CraftingItems[1].IsDone then
+                CraftingService:Claim(machine, machineType, 1)
+                task.wait(0.25)
+                continue
+            end
 
             if not (machineData and machineData.RecipeId == selectedRecipe) then
                 setRecipe("Gear", selectedRecipe)
@@ -1645,9 +1651,6 @@ autoCraftGear = Tabs.Crafting:AddToggle("acg", {
     end
 })
 
-
-
-
 Tabs.Crafting:AddSection"Seed Crafting Table"
 
 local seedRec = {}
@@ -1675,13 +1678,18 @@ autoCraftSeed = Tabs.Crafting:AddToggle("acs", {
     Title = "Auto Craft Seed",
     Callback = function(state)
         if not state then return end
-        while autoCraftSeed.Value and __runscript and task.wait(10) do
-            task.wait(2)
+        while autoCraftSeed.Value and __runscript and task.wait(1) do
             if not SeedRecipes.Value then continue end
             local machine = workspace.CraftingTables.SeedEventCraftingWorkBench
             local selectedRecipe = SeedRecipes.Value
             local machineType = machine:GetAttribute("CraftingObjectType")
             local machineData = CraftingService:GetIndividualCraftingMachineData(machine, machineType)
+
+            if machineData and machineData.CraftingItems and machineData.CraftingItems[1] and machineData.CraftingItems[1].IsDone then
+                CraftingService:Claim(machine, machineType, 1)
+                task.wait(0.25)
+                continue
+            end
 
             if not (machineData and machineData.RecipeId == selectedRecipe) then
                 setRecipe("Seed", selectedRecipe)
@@ -1738,10 +1746,6 @@ autoCraftSeed = Tabs.Crafting:AddToggle("acs", {
         end
     end
 })
-
-
-
-
 
 SaveManager:SetLibrary(Library)
 InterfaceManager:SetLibrary(Library)
