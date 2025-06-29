@@ -3,7 +3,7 @@ local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/A
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/ActualMasterOogway/Fluent-Renewed/master/Addons/InterfaceManager.luau"))()
 
 local ProximityPromptService = game:GetService("ProximityPromptService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ReplicatedStorage = game.ReplicatedStorage
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local VirtualUser = game:GetService("VirtualUser")
@@ -29,6 +29,7 @@ local crateData = require(ReplicatedStorage.Data.CosmeticCrateRegistry.CosmeticC
 local events = ReplicatedStorage.GameEvents
 local MutationHandler = require(ReplicatedStorage.Modules.MutationHandler)
 local CalculatePlantValueModule = require(ReplicatedStorage.Modules.CalculatePlantValue)
+local CraftingService = require(ReplicatedStorage.Modules.CraftingService.CraftingGlobalObjectService)
 local CommaModule = require(ReplicatedStorage.Comma_Module)
 
 local crops = {"Any"}
@@ -68,6 +69,7 @@ local Window = Library:CreateWindow{
 local Tabs = {
     Garden = Window:AddTab{Title="Garden",Icon="phosphor-plant"},
     Shop = Window:AddTab{Title = "Shop", Icon = "phosphor-storefront"},
+    Crafting = Window:AddTab{Title = "Crafting", Icon = "phosphor-pencil-ruler"},
     Event = Window:AddTab{Title = "Event", Icon = "phosphor-calendar-star"},
     Values = Window:AddTab{Title = "Values", Icon = "phosphor-chart-bar"},
     Pets = Window:AddTab{Title = "Pets", Icon = "phosphor-dog"},
@@ -770,14 +772,14 @@ Tabs.Garden:AddButton{
                 if plant:FindFirstChild("Fruits") then
                     for _,fruit in plant.Fruits:GetChildren() do
                         task.wait()
-                        if calc(fruit) < 10000 then
+                        if calc(fruit) < 1e8 then
                             continue
                         end
                         rem:FireServer("TryInspect",fruit)
                     end
                     task.wait()
                 else
-                    if calc(plant) < 10000 then
+                    if calc(plant) < 1e8 then
                         continue
                     end
                     rem:FireServer("TryInspect",plant)
@@ -1431,6 +1433,289 @@ Tabs.Values:AddButton({
         fruitValue:SetValue(CommaModule.Comma(math.floor(fVal)).."¢")
     end
 })
+
+-- Crafting
+local CraftingData = require(game.ReplicatedStorage.Data.CraftingData)
+local CraftingTableDatas = CraftingData.CraftingRecipeRegistry.RecipiesSortedByMachineType
+local NotificationService = require(game.ReplicatedStorage.Modules.Notification)
+local InventoryEnums = require(game.ReplicatedStorage.Data.EnumRegistry.InventoryServiceEnums)
+local ReversedItemEnums = require(game.ReplicatedStorage.Data.EnumRegistry.ReversedItemTypeEnums)
+local PetService = require(game.ReplicatedStorage.Modules.PetServices.PetsService)
+local CraftingRecipeRegistry = require(game.ReplicatedStorage.Data.CraftingData.CraftingRecipeRegistry)
+local ItemRecipes = CraftingRecipeRegistry.ItemRecipes
+local ItemTypeEnums = require(game.ReplicatedStorage.Data.EnumRegistry.ItemTypeEnums)
+local LocalPlayer = game.Players.LocalPlayer
+
+local function getSubmittedItems(machine)
+	local machineData = CraftingService:GetIndividualCraftingMachineData(machine, machine:GetAttribute("CraftingObjectType"))
+	if not (machineData and machineData.RecipeId) then return nil end
+	local inputItems = machineData.InputItems
+	if not inputItems then return nil end
+	local submitted = {}
+	for slot, _ in inputItems do
+		submitted[tostring(slot)] = true
+	end
+	return submitted
+end
+
+local function getRequiredRecipeInputs(machine)
+	local machineData = CraftingService:GetIndividualCraftingMachineData(machine, machine:GetAttribute("CraftingObjectType"))
+	if not (machineData and machineData.RecipeId) then return nil end
+	local recipe = ItemRecipes[machineData.RecipeId]
+	if not recipe then return nil end
+	return recipe.Inputs
+end
+
+local function getMissingRecipeInputs(machine)
+	local submitted = getSubmittedItems(machine)
+	local required = getRequiredRecipeInputs(machine)
+	if not submitted or not required then return nil end
+	local missing = {}
+	for slot, data in required do
+		if not submitted[slot] then
+			missing[slot] = data
+		end
+	end
+	return missing
+end
+
+local function inputItemToMachine(machine)
+	CraftingService:GetCraftingObjectData(machine)
+	local machineData = CraftingService:GetIndividualCraftingMachineData(machine, machine:GetAttribute("CraftingObjectType"))
+	local recipe = machineData and machineData.RecipeId and ItemRecipes[machineData.RecipeId] or nil
+	if not recipe then
+		NotificationService:CreateNotification("No Crafting recipe has been selected")
+		return
+	end
+	local submitted = getSubmittedItems(machine)
+	if not submitted then return end
+	local character = LocalPlayer.Character
+	if not character then return end
+	local tool = character:FindFirstChildWhichIsA("Tool")
+	if not tool then
+		NotificationService:CreateNotification("You are not holding an item!")
+		return
+	end
+	if not character:FindFirstChildWhichIsA("Humanoid") then return end
+	if tool:GetAttribute(InventoryEnums.Favorite) then
+		NotificationService:CreateNotification("Cannot Submit a favorited item!")
+		return
+	end
+	if tool:GetAttribute("Traded") then
+		NotificationService:CreateNotification("This item is pending trade!")
+		return
+	end
+	local itemType = ReversedItemEnums[tool:GetAttribute(InventoryEnums.ITEM_TYPE)] or tool:GetAttribute("ItemType")
+	if not itemType then return end
+	local itemName = tool:GetAttribute(InventoryEnums.ItemName)
+	local petUUID = tool:GetAttribute("PET_UUID")
+	local petData = petUUID and PetService:GetPlayerPetData(petUUID) or nil
+	if itemType == ReversedItemEnums[ItemTypeEnums.PetEgg] then
+		itemName = tool:GetAttribute(InventoryEnums.EggName)
+	elseif itemType == ReversedItemEnums[ItemTypeEnums.CosmeticCrate] then
+		itemName = tool:GetAttribute(InventoryEnums.CrateType)
+	elseif petUUID and petData then
+		itemName = petData.PetType
+	elseif itemType == ReversedItemEnums[ItemTypeEnums.SprayBottle] then
+		itemName = tool:GetAttribute(InventoryEnums.SprayType)
+	elseif itemType == ReversedItemEnums[ItemTypeEnums["Seed Pack"]] then
+		itemName = tool:GetAttribute(InventoryEnums.Type)
+	elseif itemType == ReversedItemEnums[ItemTypeEnums["Harvest Tool"]] then
+		itemName = ReversedItemEnums[tool:GetAttribute(InventoryEnums.ITEM_TYPE)]
+	end
+	local itemUUID = tool:GetAttribute(InventoryEnums.ITEM_UUID) or petUUID
+	local foundSlot = nil
+	for slot, data in recipe.Inputs do
+		if not submitted[tostring(slot)] and data.ItemData.ItemName == itemName and data.ItemType == itemType then
+			foundSlot = slot
+			break
+		end
+	end
+	if foundSlot then
+		CraftingService:InputItem(machine, machine:GetAttribute("CraftingObjectType"), foundSlot, {
+			ItemType = itemType,
+			ItemData = {
+				UUID = itemUUID
+			}
+		})
+		game.ReplicatedStorage.GameEvents.PickupEvent:Fire("Craft_SubmitItem")
+	else
+		NotificationService:CreateNotification("That is not a required item for crafting")
+	end
+end
+
+
+local function setRecipe(table, recipe)
+   if not table or not recipe then return end
+   local tables = workspace.CraftingTables
+   if table == "Seed" then
+      CraftingService:SetRecipe(tables.SeedEventCraftingWorkBench,"SeedEventWorkbench",recipe)
+   end
+   if table == "Gear" then
+      CraftingService:SetRecipe(tables.EventCraftingWorkBench,"GearEventWorkbench",recipe)
+   end
+end
+
+local gearRec = {}
+
+for i,_ in CraftingTableDatas["GearEventWorkbench"] do
+   table.insert(gearRec,i)
+end
+
+Tabs.Crafting:AddSection"Gear Crafting Table"
+local GearList
+GearList = Tabs.Crafting:AddDropdown("gl",{
+   Title = "Gear Recipes",
+   Values = gearRec,
+   Multi = false
+})
+
+Tabs.Crafting:AddButton{
+   Title = "Set Recipe",
+   Callback = function()
+      setRecipe("Gear",GearList.Value)
+   end
+}
+
+local autoCraftGear
+autoCraftGear = Tabs.Crafting:AddToggle("acg", {
+    Title = "Auto Craft Gear",
+    Callback = function(state)
+        if not state then return end
+        while autoCraftGear.Value and __runscript and task.wait(1) do
+            if not GearRecipes.Value then continue end
+            setRecipe("Gear", GearRecipes.Value)
+            local machine = workspace.CraftingTables.GearCraftingBench
+            local missingInputs = getMissingRecipeInputs(machine)
+            if not missingInputs then continue end
+
+            local backpack = LocalPlayer:FindFirstChild("Backpack")
+            if not backpack then continue end
+
+            local equipped = false
+
+            for _, tool in ipairs(backpack:GetChildren()) do
+                local itemType = ReversedItemEnums[tool:GetAttribute(InventoryEnums.ITEM_TYPE)] or tool:GetAttribute("ItemType")
+                local itemName = tool:GetAttribute(InventoryEnums.ItemName)
+                local petUUID = tool:GetAttribute("PET_UUID")
+                local petData = petUUID and PetService:GetPlayerPetData(petUUID) or nil
+
+                if itemType == ReversedItemEnums[ItemTypeEnums.PetEgg] then
+                    itemName = tool:GetAttribute(InventoryEnums.EggName)
+                elseif itemType == ReversedItemEnums[ItemTypeEnums.CosmeticCrate] then
+                    itemName = tool:GetAttribute(InventoryEnums.CrateType)
+                elseif petUUID and petData then
+                    itemName = petData.PetType
+                elseif itemType == ReversedItemEnums[ItemTypeEnums.SprayBottle] then
+                    itemName = tool:GetAttribute(InventoryEnums.SprayType)
+                elseif itemType == ReversedItemEnums[ItemTypeEnums["Seed Pack"]] then
+                    itemName = tool:GetAttribute(InventoryEnums.Type)
+                elseif itemType == ReversedItemEnums[ItemTypeEnums["Harvest Tool"]] then
+                    itemName = ReversedItemEnums[tool:GetAttribute(InventoryEnums.ITEM_TYPE)]
+                end
+
+                for _, input in pairs(missingInputs) do
+                    if input.ItemType == itemType and input.ItemData.ItemName == itemName then
+                        tool.Parent = LocalPlayer.Character
+                        equipped = true
+                        break
+                    end
+                end
+
+                if equipped then break end
+            end
+
+            if equipped then
+                inputItemToMachine(machine)
+                task.wait(0.25)
+                CraftingService:Claim(machine,machine:GetAttribute("CraftingObjectType"),1)
+                task.wait(0.25)
+            end
+        end
+    end
+})
+
+
+Tabs.Crafting:AddSection"Seed Crafting Table"
+
+local seedRec = {}
+
+for i,_ in CraftingTableDatas["SeedEventWorkbench"] do
+   table.insert(seedRec,i)
+end
+
+local SeedRecipes
+SeedRecipes = Tabs.Crafting:AddDropdown("sr",{
+   Title = "Seed Recipes",
+   Values = seedRec,
+   Multi = false
+})
+
+Tabs.Crafting:AddButton{
+    Title = "Set Recipe",
+    Callback = function()
+        setRecipe("Seed",SeedRecipes.Value)
+    end
+}
+
+local autoCraftSeed
+autoCraftSeed = Tabs.Crafting:AddToggle("acs", {
+    Title = "Auto Craft Seed",
+    Callback = function(state)
+        if not state then return end
+        while autoCraftSeed.Value and __runscript and task.wait(1) do
+            if not SeedRecipes.Value then continue end
+            setRecipe("Seed", SeedRecipes.Value)
+            local machine = workspace.CraftingTables.SeedEventCraftingWorkBench
+            local missingInputs = getMissingRecipeInputs(machine)
+            if not missingInputs then continue end
+
+            local backpack = LocalPlayer:FindFirstChild("Backpack")
+            if not backpack then continue end
+
+            local equipped = false
+
+            for _, tool in ipairs(backpack:GetChildren()) do
+                local itemType = ReversedItemEnums[tool:GetAttribute(InventoryEnums.ITEM_TYPE)] or tool:GetAttribute("ItemType")
+                local itemName = tool:GetAttribute(InventoryEnums.ItemName)
+                local petUUID = tool:GetAttribute("PET_UUID")
+                local petData = petUUID and PetService:GetPlayerPetData(petUUID) or nil
+
+                if itemType == ReversedItemEnums[ItemTypeEnums.PetEgg] then
+                    itemName = tool:GetAttribute(InventoryEnums.EggName)
+                elseif itemType == ReversedItemEnums[ItemTypeEnums.CosmeticCrate] then
+                    itemName = tool:GetAttribute(InventoryEnums.CrateType)
+                elseif petUUID and petData then
+                    itemName = petData.PetType
+                elseif itemType == ReversedItemEnums[ItemTypeEnums.SprayBottle] then
+                    itemName = tool:GetAttribute(InventoryEnums.SprayType)
+                elseif itemType == ReversedItemEnums[ItemTypeEnums["Seed Pack"]] then
+                    itemName = tool:GetAttribute(InventoryEnums.Type)
+                elseif itemType == ReversedItemEnums[ItemTypeEnums["Harvest Tool"]] then
+                    itemName = ReversedItemEnums[tool:GetAttribute(InventoryEnums.ITEM_TYPE)]
+                end
+
+                for _, input in pairs(missingInputs) do
+                    if input.ItemType == itemType and input.ItemData.ItemName == itemName then
+                        tool.Parent = LocalPlayer.Character
+                        equipped = true
+                        break
+                    end
+                end
+
+                if equipped then break end
+            end
+
+            if equipped then
+                inputItemToMachine(machine)
+                task.wait(0.25)
+                CraftingService:Claim(machine,machine:GetAttribute("CraftingObjectType"),1)
+                task.wait(0.25)
+            end
+        end
+    end
+})
+
 
 SaveManager:SetLibrary(Library)
 InterfaceManager:SetLibrary(Library)
