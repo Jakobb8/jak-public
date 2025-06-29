@@ -1563,8 +1563,8 @@ for i,_ in CraftingTableDatas["GearEventWorkbench"] do
 end
 
 Tabs.Crafting:AddSection"Gear Crafting Table"
-local GearList
-GearList = Tabs.Crafting:AddDropdown("gl",{
+local GearRecipes
+GearRecipes = Tabs.Crafting:AddDropdown("gl",{
    Title = "Gear Recipes",
    Values = gearRec,
    Multi = false
@@ -1573,7 +1573,7 @@ GearList = Tabs.Crafting:AddDropdown("gl",{
 Tabs.Crafting:AddButton{
    Title = "Set Recipe",
    Callback = function()
-      setRecipe("Gear",GearList.Value)
+      setRecipe("Gear",GearRecipes.Value)
    end
 }
 
@@ -1584,8 +1584,16 @@ autoCraftGear = Tabs.Crafting:AddToggle("acg", {
         if not state then return end
         while autoCraftGear.Value and __runscript and task.wait(1) do
             if not GearRecipes.Value then continue end
-            setRecipe("Gear", GearRecipes.Value)
             local machine = workspace.CraftingTables.GearCraftingBench
+            local selectedRecipe = GearRecipes.Value
+            local machineType = machine:GetAttribute("CraftingObjectType")
+            local machineData = CraftingService:GetIndividualCraftingMachineData(machine, machineType)
+
+            if not (machineData and machineData.RecipeId == selectedRecipe) then
+                setRecipe("Gear", selectedRecipe)
+                task.wait(0.1)
+            end
+
             local missingInputs = getMissingRecipeInputs(machine)
             if not missingInputs then continue end
 
@@ -1628,12 +1636,11 @@ autoCraftGear = Tabs.Crafting:AddToggle("acg", {
             if equipped then
                 inputItemToMachine(machine)
                 task.wait(0.25)
-                CraftingService:Claim(machine,machine:GetAttribute("CraftingObjectType"),1)
-                task.wait(0.25)
             end
         end
     end
 })
+
 
 
 Tabs.Crafting:AddSection"Seed Crafting Table"
@@ -1665,8 +1672,16 @@ autoCraftSeed = Tabs.Crafting:AddToggle("acs", {
         if not state then return end
         while autoCraftSeed.Value and __runscript and task.wait(1) do
             if not SeedRecipes.Value then continue end
-            setRecipe("Seed", SeedRecipes.Value)
             local machine = workspace.CraftingTables.SeedEventCraftingWorkBench
+            local selectedRecipe = SeedRecipes.Value
+            local machineType = machine:GetAttribute("CraftingObjectType")
+            local machineData = CraftingService:GetIndividualCraftingMachineData(machine, machineType)
+
+            if not (machineData and machineData.RecipeId == selectedRecipe) then
+                setRecipe("Seed", selectedRecipe)
+                task.wait(0.1)
+            end
+
             local missingInputs = getMissingRecipeInputs(machine)
             if not missingInputs then continue end
 
@@ -1709,12 +1724,12 @@ autoCraftSeed = Tabs.Crafting:AddToggle("acs", {
             if equipped then
                 inputItemToMachine(machine)
                 task.wait(0.25)
-                CraftingService:Claim(machine,machine:GetAttribute("CraftingObjectType"),1)
-                task.wait(0.25)
             end
         end
     end
 })
+
+
 
 
 SaveManager:SetLibrary(Library)
