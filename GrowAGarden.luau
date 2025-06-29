@@ -1582,9 +1582,9 @@ autoCraftGear = Tabs.Crafting:AddToggle("acg", {
     Title = "Auto Craft Gear",
     Callback = function(state)
         if not state then return end
-        while autoCraftGear.Value and __runscript and task.wait(1) do
+        while autoCraftGear.Value and __runscript and task.wait(10) do
             if not GearRecipes.Value then continue end
-            local machine = workspace.CraftingTables.GearCraftingBench
+            local machine = workspace.CraftingTables.EventCraftingWorkBench
             local selectedRecipe = GearRecipes.Value
             local machineType = machine:GetAttribute("CraftingObjectType")
             local machineData = CraftingService:GetIndividualCraftingMachineData(machine, machineType)
@@ -1675,7 +1675,8 @@ autoCraftSeed = Tabs.Crafting:AddToggle("acs", {
     Title = "Auto Craft Seed",
     Callback = function(state)
         if not state then return end
-        while autoCraftSeed.Value and __runscript and task.wait(1) do
+        while autoCraftSeed.Value and __runscript and task.wait(10) do
+            task.wait(2)
             if not SeedRecipes.Value then continue end
             local machine = workspace.CraftingTables.SeedEventCraftingWorkBench
             local selectedRecipe = SeedRecipes.Value
