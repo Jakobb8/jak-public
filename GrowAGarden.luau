@@ -255,6 +255,34 @@ local function equipTool(toolName)
     tool.Parent = getCharacter()
 end
 
+local function calc(model)
+            local met = setmetatable({}, {
+                __index = function(_, key)
+                    if key == "FindFirstChild" then
+                        return function(_,childName)
+                            if childName == "Item_String" then
+                                return {Value = model.Name}
+                            end
+                            return model:FindFirstChild(childName)
+                        end
+                    elseif key == "GetAttribute" then
+                        return function(_,attributeName)
+                            return model:GetAttribute(attributeName)
+                        end
+                    end
+                    local child = model:FindFirstChild(key)
+                    if child then
+                        return child
+                    end
+                    return model[key]
+                end,
+            })
+
+            local plantValue = CalculatePlantValueModule(met)
+
+            return plantValue
+        end
+
 local function checkIfFruitIsFavorited(fruit)
     return fruit:GetAttribute("Favorited") or fruit:GetAttribute("d")
 end
@@ -742,10 +770,16 @@ Tabs.Garden:AddButton{
                 if plant:FindFirstChild("Fruits") then
                     for _,fruit in plant.Fruits:GetChildren() do
                         task.wait()
+                        if calc(fruit) < 10000 then
+                            continue
+                        end
                         rem:FireServer("TryInspect",fruit)
                     end
                     task.wait()
                 else
+                    if calc(plant) < 10000 then
+                        continue
+                    end
                     rem:FireServer("TryInspect",plant)
                     task.wait()
                 end
@@ -990,34 +1024,6 @@ hoverInfo = Tabs.QOL:AddToggle("hIT",{
         ui.PlantInfo.Size = UDim2.fromScale(10,0.75)
 
         ui.Visible = true
-
-        local function calc(model)
-            local met = setmetatable({}, {
-                __index = function(_, key)
-                    if key == "FindFirstChild" then
-                        return function(_,childName)
-                            if childName == "Item_String" then
-                                return {Value = model.Name}
-                            end
-                            return model:FindFirstChild(childName)
-                        end
-                    elseif key == "GetAttribute" then
-                        return function(_,attributeName)
-                            return model:GetAttribute(attributeName)
-                        end
-                    end
-                    local child = model:FindFirstChild(key)
-                    if child then
-                        return child
-                    end
-                    return model[key]
-                end,
-            })
-
-            local plantValue = CalculatePlantValueModule(met)
-
-            return plantValue
-        end
 
         local function getMouseData()
             return mouse.Target, Vector2.new(mouse.X, mouse.Y)
