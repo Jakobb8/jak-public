@@ -1624,6 +1624,8 @@ autoCraftGear = Tabs.Crafting:AddToggle("acg", {
 
                 for _, input in pairs(missingInputs) do
                     if input.ItemType == itemType and input.ItemData.ItemName == itemName then
+                        unequipAllTools()
+                        task.wait(0.1)
                         tool.Parent = LocalPlayer.Character
                         equipped = true
                         break
@@ -1636,10 +1638,13 @@ autoCraftGear = Tabs.Crafting:AddToggle("acg", {
             if equipped then
                 inputItemToMachine(machine)
                 task.wait(0.25)
+                CraftingService:Craft(machine, machineType)
+                task.wait(0.25)
             end
         end
     end
 })
+
 
 
 
@@ -1712,6 +1717,8 @@ autoCraftSeed = Tabs.Crafting:AddToggle("acs", {
 
                 for _, input in pairs(missingInputs) do
                     if input.ItemType == itemType and input.ItemData.ItemName == itemName then
+                        unequipAllTools()
+                        task.wait(0.1)
                         tool.Parent = LocalPlayer.Character
                         equipped = true
                         break
@@ -1724,10 +1731,13 @@ autoCraftSeed = Tabs.Crafting:AddToggle("acs", {
             if equipped then
                 inputItemToMachine(machine)
                 task.wait(0.25)
+                CraftingService:Craft(machine, machineType)
+                task.wait(0.25)
             end
         end
     end
 })
+
 
 
 
